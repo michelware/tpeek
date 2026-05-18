@@ -1,66 +1,135 @@
-# TPeek 🚀
+# TPeek
 
-A lightweight, zero-dependency TCP transparent proxy designed for deep traffic inspection and debugging. Built with Go for high performance and low resource footprint.
+**Debug what your app actually receives over TCP. A lightweight Go binary. No dependencies.**
 
-## Features
+TPeek is a transparent TCP proxy that shows you, in real time, the exact bytes flowing between two applications. It sits silently between a client and a server, forwarding traffic untouched while printing every read to your terminal — block by block, with timestamps and direction.
 
-* **Bidirectional Inspection**: Real-time visualization of Client and Server data streams.
-* **Visual Contrast**: Distinctive color-coded frames (🔵 Client / 🟢 Server) for instant source identification.
-* **Safe for Production**: Forwards untouched binary data while sanitizing terminal output (prevents terminal crashes from binary noise).
-* **Hex & Plain Text**: Toggle between raw hex dumps and readable text modes.
-* **Zero Dependencies**: Single binary, no runtime required (unlike Python or Node.js tools).
+```
+[14:32:01.482] 🔵 Client → 47 bytes
+  GET /api/users HTTP/1.1
+  Host: localhost
+  Accept: application/json
+
+[14:32:01.489] 🟢 Server → 128 bytes
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+  Content-Length: 42
+
+  {"users":[{"id":1,"name":"fady"}]}
+```
+
+---
+
+## Why TPeek
+
+### 1. You see what your app receives, not what the network carries
+
+Sniffers like Wireshark or `tcpdump` show packets — fragmented, reassembled by the OS later. TPeek shows you exactly what arrives in your application's buffer, one `Read()` call at a time. This is what your code actually sees.
+
+### 2. Built for binary protocols, not just HTTP
+
+Toggle between plain text and full hexadecimal dump. Inspect MySQL handshakes, Redis commands, custom binary protocols, or proprietary wire formats without writing a custom parser.
+
+```bash
+tpeek -l 0.0.0.0:8000 -t 127.0.0.1:3306 -hex
+```
+
+### 3. Fragmentation-aware
+
+Each block of data is printed exactly as received from the syscall — never merged, never reformatted. You see how the protocol fragments its messages, which is critical when debugging streaming protocols, slow clients, or chunked responses.
+
+### 4. Millisecond timestamps
+
+Every read is timestamped. You can immediately measure round-trip latency, identify slow responses, or detect timing bugs between client and server.
+
+### 5. Safe for production debugging
+
+Binary data is forwarded untouched. Only the terminal output is sanitized so unprintable bytes don't crash your shell. You can use TPeek in front of a real service without risk of corrupting the wire format.
+
+### 6. Single binary. Zero runtime. Zero dependencies.
+
+No Python, no Node, no Docker image, no library to install. One Go binary you drop on a server, a laptop, or inside a container.
+
+---
+
+## When to use TPeek
+
+- You're integrating a third-party API and the docs don't match what's actually sent
+- You need to reverse-engineer or debug a proprietary binary protocol
+- You're comparing the wire behavior of two different database clients
+- You want to see if a slow request is the client, the network, or the server
+- You're debugging a microservice mesh and need a quick view of what one service sends to another
+
+---
 
 ## Installation
 
-### From Source
+### Linux (precompiled)
 
 ```bash
 sudo wget https://github.com/michelphp/tpeek/releases/download/1.0.0/tpeek-linux -O /usr/local/bin/tpeek
 sudo chmod +x /usr/local/bin/tpeek
 ```
 
+### From source
+
+```bash
+git clone https://github.com/michelphp/tpeek
+cd tpeek
+go build -o tpeek
+```
+
+---
 
 ## Usage
 
-### Basic Debugging (e.g., MySQL)
+### Inspect TCP traffic between an app and MySQL
 
 ```bash
 tpeek -l 0.0.0.0:8000 -t 127.0.0.1:3306
-
 ```
 
-Point your application to `localhost:8000` to inspect the traffic flowing to your database.
+Then point your application at `localhost:8000` instead of `localhost:3306`. Every query, every response, every byte — visible.
 
-### Hexadecimal Mode (Binary Protocols)
+### Inspect a binary protocol (Redis, custom RPC, proprietary protocols)
 
 ```bash
 tpeek -l 0.0.0.0:8000 -t 127.0.0.1:6379 -hex
-
 ```
 
-## Command Line Flags
+### Inspect an HTTP API
 
-| Flag | Description | Default |
-| --- | --- | --- |
-| `-l` | Local address and port to listen on |  |
-| `-t` | Target service address and port |  |
-| `-hex` | Enables full hexadecimal dump mode | `false` |
+```bash
+tpeek -l 0.0.0.0:8080 -t api.example.com:80
+```
 
+---
 
-## Why TPeek?
+## Command line flags
 
-TPeek is designed to observe the dialogue between two applications without the complexity of a network sniffer.
+| Flag   | Description                              | Default |
+|--------|------------------------------------------|---------|
+| `-l`   | Local address and port to listen on      |         |
+| `-t`   | Target service address and port          |         |
+| `-hex` | Enable full hexadecimal dump mode        | `false` |
 
-* **Flow Identification**: Each data block is prefixed by its source (Client or Server). This allows you to follow the "request-response" logic directly in the console.
-* **Fragmentation Awareness**: TPeek displays data block by block, exactly as received by the `Read()` syscall. This shows how the application segments its messages instead of displaying a continuous, unstructured text stream.
-* **Millisecond Timestamps**: Every read operation is marked with a precise timestamp. This makes it possible to measure the processing delay between an outgoing request and the incoming response.
-* **Application-Level View**: The program displays the final data as reassembled by the operating system. You see exactly what the software receives in its buffer, without the overhead of lower-level network layers.
+---
 
+## Comparison
+
+|                              | Wireshark / tcpdump | TPeek         |
+|------------------------------|---------------------|---------------|
+| View                         | Network packets     | App-level reads |
+| Binary protocol friendly     | Requires dissectors | Hex mode native |
+| Proxy mode (man-in-the-middle) | Manual setup      | One command   |
+| Runtime dependencies         | libpcap + tools     | None          |
+| Installation                 | Package + privileges| Drop one binary |
+| Terminal-safe output         | N/A                 | Sanitized     |
+
+TPeek is not a replacement for Wireshark. It's a different lens — closer to what your application sees, simpler to deploy.
+
+---
 
 ## License
 
 GNU Affero General Public License v3.0 (AGPL-3.0)
-
-
-
-
