@@ -15,7 +15,7 @@ TPeek is a transparent TCP proxy that shows you, in real time, the exact bytes f
   Content-Type: application/json
   Content-Length: 42
 
-  {"users":[{"id":1,"name":"fady"}]}
+  {"users":[{"id":1,"name":"michel"}]}
 ```
 
 ---
