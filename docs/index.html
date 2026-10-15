@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TPeek — see every byte that goes through a TCP connection</title>
+<meta name="description" content="TPeek is a transparent TCP proxy for debugging, as a single Go binary. It forwards every byte untouched and prints each read in your terminal. Any protocol. No dependencies, no privileges.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="./">tpeek<span>/</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#why">Why TPeek</a>
+      <a href="#compare">Compare</a>
+      <a href="docs.html">Documentation</a>
+      <a href="https://github.com/michelware/tpeek">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="hero">
+      <p class="eyebrow">Single Go binary · Linux · macOS · Windows</p>
+      <h1>See exactly what goes through any TCP connection.</h1>
+      <p class="lead">One binary. No dependencies, no privileges. TPeek sits between a client and a server, forwards every byte untouched, and prints each read in your terminal.</p>
+      <div class="actions">
+        <a class="button primary" href="docs.html#install">Install TPeek</a>
+        <a class="button" href="docs.html">Read the docs</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <p class="label">How it works</p>
+      <h2>Listen. Point. Read.</h2>
+      <p class="section-lead">Three steps, nothing hidden. TPeek is a plain TCP proxy: the client talks to it, it talks to the server, and you see both sides.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>1. Listen</h3>
+          <p><code>tpeek -l 127.0.0.1:8000 -t 127.0.0.1:3306</code> listens on port 8000 and forwards everything to your MySQL on 3306.</p>
+        </div>
+        <div class="card">
+          <h3>2. Point</h3>
+          <p>Point your application at <code>127.0.0.1:8000</code> instead of the real server. Nothing else changes for the app or the server.</p>
+        </div>
+        <div class="card">
+          <h3>3. Read</h3>
+          <p>Every read is printed as a block: connection number, direction, timing, size and stream offset. In plain text, or in hex with <code>-hex</code>.</p>
+        </div>
+      </div>
+      <p class="terminal-title">What you see in your terminal</p>
+<pre>$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:8080
+<span class="c">14:32:01.478920</span> ✅ #1 New connection from 127.0.0.1:52144
+<span class="c">14:32:01.479310</span> 🔗 #1 127.0.0.1:52144 → [127.0.0.1:52145] → 127.0.0.1:8080
+
+<span class="k">┌── #1 🔵 CLIENT &gt;&gt; ── 14:32:01.479602 ── +682µs ── 70 bytes @ 0</span>
+<span class="k">│</span> GET /api/users HTTP/1.1
+<span class="k">│</span> Host: localhost
+<span class="k">│</span> Accept: application/json
+<span class="k">│</span>
+<span class="k">└────────────────────────────────────────</span>
+
+<span class="v">┌── #1 🟢 SERVER &lt;&lt; ── 14:32:01.483115 ── +4.195ms ── 107 bytes @ 0</span>
+<span class="v">│</span> HTTP/1.1 200 OK
+<span class="v">│</span> Content-Type: application/json
+<span class="v">│</span> Content-Length: 36
+<span class="v">│</span>
+<span class="v">│</span> {"users":[{"id":1,"name":"michel"}]}
+<span class="v">└────────────────────────────────────────</span>
+<span class="c">14:32:01.484240</span> 🔌 #1 Connection closed after 5ms ── client sent 70 bytes, server sent 107 bytes</pre>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <p class="label">Why TPeek</p>
+      <h2>Made for reading a conversation.</h2>
+      <p class="section-lead">A packet capture shows how the network cut the data. TPeek shows what your application actually receives, as one story, on one timeline.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>No privileges</h3>
+          <p>No <code>sudo</code>, no capture driver, no certificate to install. Drop one binary on a server, a laptop or in a container and run it.</p>
+        </div>
+        <div class="card">
+          <h3>Any protocol</h3>
+          <p>HTTP, MySQL, PostgreSQL, Redis, SMTP, MQTT, a homemade binary protocol. No dissector needed: if it goes over TCP, you see it.</p>
+        </div>
+        <div class="card">
+          <h3>Reads, not packets</h3>
+          <p>One block per <code>Read()</code> on the socket, with its offset in the stream: exactly what your parsing code has to handle.</p>
+        </div>
+        <div class="card">
+          <h3>Plain words</h3>
+          <p>Numbered connections, clean close (<code>EOF</code>) or abrupt reset, who stopped first, and a summary per connection. Easy to read, easy to <code>grep</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="wrap">
+      <p class="label">Compare</p>
+      <h2>Like Wireshark or socat -v, without the setup.</h2>
+      <p class="section-lead">Those tools are great and answer other questions. TPeek does one job: show the bytes of a TCP conversation, from any machine, in seconds.</p>
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr><th></th><th>Wireshark / tcpdump</th><th>socat -v</th><th>mitmproxy / Fiddler</th><th class="us">TPeek</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>How it works</td><td>Passive packet capture</td><td>Proxy</td><td>Proxy</td><td class="us">Proxy, client points to it</td></tr>
+            <tr><td>Admin rights</td><td>Yes (libpcap / Npcap)</td><td>No</td><td>No</td><td class="us">No</td></tr>
+            <tr><td>Protocols</td><td>Any, hundreds decoded</td><td>Any</td><td>Mostly HTTP(S)</td><td class="us">Any, text or hex</td></tr>
+            <tr><td>Who closed and how</td><td>FIN / RST flags, to interpret</td><td>In debug logs</td><td>No</td><td class="us">Yes, in plain words</td></tr>
+            <tr><td>Install</td><td>Package + capture driver</td><td>Package, awkward on Windows</td><td>App + certificate</td><td class="us">One binary, all OSes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="never">
+    <div class="wrap">
+      <p class="label">Scope</p>
+      <h2>What TPeek will never do</h2>
+      <p class="section-lead">A single Go file you can read in one sitting stays a tool you can trust. TPeek will not grow into a packet analyzer.</p>
+      <ul class="never">
+        <li>change a single byte</li>
+        <li>cut idle connections</li>
+        <li>delay data for the display</li>
+        <li>require root or a driver</li>
+        <li>send control codes to your terminal</li>
+        <li>install a certificate</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="get">
+    <div class="wrap">
+      <p class="label">Get TPeek</p>
+      <h2>One download. Five platforms.</h2>
+      <p class="section-lead">Linux x64 and ARM64, macOS Intel and Apple Silicon, Windows x64. Download the binary, put it in your PATH, and you are ready.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/michelware/tpeek/releases/latest">Download the latest release</a>
+        <a class="button" href="docs.html#quick-start">Quick start guide</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">TPeek · <a href="https://github.com/michelware/tpeek">Source on GitHub</a> · <a href="docs.html">Documentation</a></div>
+</footer>
+
+</body>
+</html>

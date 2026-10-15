@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TPeek documentation</title>
+<meta name="description" content="Install and use TPeek: the 5 binaries, command line flags, reading data blocks and connection events, plain text and hex modes, recipes and limitations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="./">tpeek<span>/</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="./">Home</a>
+      <a href="docs.html">Documentation</a>
+      <a href="https://github.com/michelware/tpeek">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="docs">
+
+<nav class="toc" aria-label="Documentation">
+  <ol>
+    <li><a href="#install">1. Install</a></li>
+    <li><a href="#quick-start">2. Quick start</a></li>
+    <li><a href="#flags">3. Command line flags</a></li>
+    <li><a href="#blocks">4. Data blocks</a></li>
+    <li><a href="#events">5. Connection events</a></li>
+    <li><a href="#text">6. Plain text mode</a></li>
+    <li><a href="#hex">7. Hex mode</a></li>
+    <li><a href="#recipes">8. Recipes</a></li>
+    <li><a href="#limits">9. Limitations</a></li>
+  </ol>
+</nav>
+
+<article>
+<h1>Documentation</h1>
+<p>Everything TPeek does, in the order you meet it. TPeek is one command with five flags: it listens on one address, forwards to one target, and prints what goes through.</p>
+
+<h2 id="install">1. Install</h2>
+<p>TPeek ships as 5 standalone binaries. Download the one for your platform from the <a href="https://github.com/michelware/tpeek/releases/latest">latest release</a>:</p>
+<div class="table-box">
+<table>
+  <thead><tr><th>Platform</th><th>File</th></tr></thead>
+  <tbody>
+    <tr><td>Linux x64</td><td><code>tpeek-linux-amd64</code></td></tr>
+    <tr><td>Linux ARM64 (Raspberry Pi, ARM servers)</td><td><code>tpeek-linux-arm64</code></td></tr>
+    <tr><td>macOS Intel</td><td><code>tpeek-macos-amd64</code></td></tr>
+    <tr><td>macOS Apple Silicon</td><td><code>tpeek-macos-arm64</code></td></tr>
+    <tr><td>Windows x64</td><td><code>tpeek-windows-amd64.exe</code></td></tr>
+  </tbody>
+</table>
+</div>
+<p>Linux and macOS: download it straight into your PATH and make it executable.</p>
+<pre>$ sudo curl -L https://github.com/michelware/tpeek/releases/latest/download/tpeek-linux-amd64 -o /usr/local/bin/tpeek
+$ sudo chmod +x /usr/local/bin/tpeek
+$ tpeek -version        <span class="c"># prints the version</span></pre>
+<p>Windows: rename the file to <code>tpeek.exe</code>, place it in a folder listed in your <code>PATH</code>, and run it from a terminal (Windows Terminal recommended for colors).</p>
+<p>From source, with Go 1.23 or newer:</p>
+<pre>$ git clone https://github.com/michelware/tpeek
+$ cd tpeek
+$ go build -o tpeek
+$ ./build.sh            <span class="c"># or build every platform at once, into build/</span></pre>
+
+<h2 id="quick-start">2. Quick start</h2>
+<p>Your MySQL listens on 3306. Start TPeek on 8000 and forward to it:</p>
+<pre>$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:3306 -hex</pre>
+<p>Then point your application at <code>127.0.0.1:8000</code> instead of <code>127.0.0.1:3306</code>. Nothing else changes for the app or the server: every byte is forwarded as is, and you see all of it. Stop with <code>Ctrl+C</code>.</p>
+<p>See <a href="#blocks">Data blocks</a> and <a href="#events">Connection events</a> to read the output.</p>
+
+<h2 id="flags">3. Command line flags</h2>
+<div class="table-box">
+<table>
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>-l</code></td><td>required</td><td>Address and port TPeek listens on. Example: <code>127.0.0.1:8000</code>.</td></tr>
+    <tr><td><code>-t</code></td><td>required</td><td>Target address and port, where every connection is forwarded. Example: <code>127.0.0.1:3306</code>.</td></tr>
+    <tr><td><code>-hex</code></td><td><code>false</code></td><td>Show data as a hexadecimal dump instead of plain text.</td></tr>
+    <tr><td><code>-nocolor</code></td><td><code>false</code></td><td>Disable colors.</td></tr>
+    <tr><td><code>-version</code></td><td></td><td>Print the version and exit.</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Colors are also turned off automatically when the output is not a terminal (file, pipe) or when the <code>NO_COLOR</code> environment variable is set.</p>
+<div class="note"><strong>Listening on <code>0.0.0.0</code> exposes the target to your whole network.</strong> <code>tpeek -l 0.0.0.0:8000 -t 127.0.0.1:6379</code> makes a Redis that was only reachable from the machine itself reachable by anyone who can reach port 8000. Use <code>127.0.0.1</code> unless the client really runs on another machine.</div>
+
+<h2 id="blocks">4. Data blocks</h2>
+<p>One block is one <code>Read()</code> on the socket, exactly as your application would receive it.</p>
+<pre>┌── #1 🔵 CLIENT &gt;&gt; ── 14:32:01.479602 ── +682µs ── 70 bytes @ 0
+     <span class="c">│   │              │                  │         │         │
+     │   │              │                  │         │         └ offset of the first byte in this
+     │   │              │                  │         │           direction's stream (0 = very first byte)
+     │   │              │                  │         └ size of this read
+     │   │              │                  └ time since the connection was accepted
+     │   │              └ wall clock, microseconds
+     │   └ direction: 🔵 CLIENT &gt;&gt; (client → server) or 🟢 SERVER &lt;&lt; (server → client)
+     └ connection number</span></pre>
+<h3>Timing</h3>
+<p><code>+682µs</code> and <code>+4.195ms</code> are measured from the moment the connection was accepted. The gap between a request and its answer is the difference between the two: here about 3.5 ms of server time.</p>
+<h3>Offset</h3>
+<p>Binary protocols often announce a length (“the next 89 bytes are one packet”). The offset tells you where each message starts and ends, even when it is split across several reads:</p>
+<pre>┌── #4 🟢 SERVER &lt;&lt; ── ... ── 16384 bytes @ 0
+┌── #4 🟢 SERVER &lt;&lt; ── ... ── 16384 bytes @ 16384
+┌── #4 🟢 SERVER &lt;&lt; ── ... ── 2741 bytes @ 32768     <span class="c">← 35509 bytes in total</span></pre>
+
+<h2 id="events">5. Connection events</h2>
+<p>Events are printed on the same timeline as the data blocks, with the same microsecond clock.</p>
+<div class="table-box">
+<table>
+  <thead><tr><th>Event</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>✅ #1 New connection from 127.0.0.1:52144</code></td><td>A client connected to TPeek.</td></tr>
+    <tr><td><code>🔗 #1 client → [127.0.0.1:52145] → target</code></td><td>TPeek reached the target. The port in brackets is the one <strong>the target sees</strong>: use it to find this connection in the target's logs (e.g. MySQL <code>SHOW PROCESSLIST</code>).</td></tr>
+    <tr><td><code>❌ #1 Target connection failed</code></td><td>The target is down or unreachable (10 s timeout). The client is disconnected.</td></tr>
+    <tr><td><code>📭 #1 🔵 CLIENT &gt;&gt; finished sending (EOF)</code></td><td>That side closed <strong>cleanly</strong>. The other direction keeps running until it is done too: half-close is passed through.</td></tr>
+    <tr><td><code>💥 #1 🔵 CLIENT &gt;&gt; read error: connection reset by peer</code></td><td>That side ended <strong>abruptly</strong>: crash, kill, network failure.</td></tr>
+    <tr><td><code>⚠️ #1 ... write failed</code></td><td>Data couldn't be delivered: the receiving side is gone.</td></tr>
+    <tr><td><code>🔌 #1 Connection closed after 1.523s</code></td><td>Summary of the connection, with the bytes sent by each side.</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="note"><strong>Who stops first is often the answer to a bug.</strong> <code>📭 #1 🟢 SERVER &lt;&lt; finished sending (EOF) after 30.002s</code> means the server closed the connection by itself, probably an idle timeout.</div>
+
+<h2 id="text">6. Plain text mode</h2>
+<p>The default. Made for text protocols: HTTP, SMTP, Redis, IRC, JSON lines. The rules, byte by byte:</p>
+<ol>
+  <li>Printable ASCII is shown as is.</li>
+  <li><code>\n</code> is a line break, <code>\r\n</code> is a single line break.</li>
+  <li><strong>Every other byte is shown as one <code>.</code></strong> An <code>é</code> (2 bytes in UTF-8) shows as <code>..</code>, so the display always matches the byte count.</li>
+</ol>
+<p>Control characters, including terminal escape codes, are never sent to your terminal: a server can't mess up or hijack your shell.</p>
+
+<h2 id="hex">7. Hex mode</h2>
+<pre>$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:6379 -hex</pre>
+<p>Works for <strong>any</strong> protocol: it shows the raw bytes, whatever they mean. Use it for binary protocols (MySQL, PostgreSQL, MQTT, gRPC, homemade formats) or when the exact bytes matter: CRLF vs LF, length prefixes, flags. Example with Redis, where <code>$4</code> means “the next 4 bytes are the value”:</p>
+<pre>┌── #1 🔵 CLIENT &gt;&gt; ── 18:07:32.861274 ── +92.91ms ── 14 bytes @ 0
+│ 00000000  2a 31 0d 0a 24 34 0d 0a  50 49 4e 47 0d 0a        |*1..$4..PING..|
+└────────────────────────────────────────
+
+┌── #1 🟢 SERVER &lt;&lt; ── 18:07:32.861274 ── +92.91ms ── 7 bytes @ 0
+│ 00000000  2b 50 4f 4e 47 0d 0a                              |+PONG..|
+└────────────────────────────────────────</pre>
+
+<h2 id="recipes">8. Recipes</h2>
+<pre><span class="c"># Database (MySQL, PostgreSQL...): binary protocol → hex</span>
+$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:3306 -hex
+
+<span class="c"># Redis: text protocol → plain text is usually enough</span>
+$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:6379
+
+<span class="c"># Plain HTTP API (no TLS)</span>
+$ tpeek -l 127.0.0.1:8080 -t api.internal:80
+
+<span class="c"># Save a full trace (events + data, one timeline) to a file</span>
+$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:3306 &gt; trace.log
+
+<span class="c"># Only keep what matters</span>
+$ tpeek -l 127.0.0.1:8000 -t 127.0.0.1:3306 | grep -E "#3|💥"</pre>
+<p>To watch two services, run two TPeek instances on two ports.</p>
+
+<h2 id="limits">9. Limitations</h2>
+<ul>
+  <li><strong>No TLS decryption.</strong> With HTTPS or MySQL over SSL, TPeek shows encrypted bytes. Put it on the unencrypted side (e.g. between a TLS-terminating proxy and the app), disable TLS in a test environment, or use mitmproxy / Fiddler for HTTPS.</li>
+  <li><strong>The client must point to TPeek.</strong> If you can't change where the client connects, use a passive capture (Wireshark, tcpdump).</li>
+  <li><strong>One target per instance.</strong></li>
+  <li><strong>The target sees TPeek's address, not the client's.</strong> IP allow-lists or MySQL accounts tied to a host (<code>'user'@'10.0.0.5'</code>) see the proxy's address instead. The <code>🔗</code> line gives the mapping.</li>
+  <li><strong>The terminal sets the pace.</strong> Data is forwarded before being printed, so a message is never delayed by the display, but a very slow terminal (huge hex dumps over SSH) can reduce throughput. Redirect to a file in that case.</li>
+  <li><strong>Colors on Windows.</strong> The legacy console (<code>conhost</code>) doesn't render colors: use Windows Terminal or <code>-nocolor</code>. In Git Bash (mintty), the output isn't seen as a terminal, so colors are off.</li>
+  <li><strong>Clock precision on Windows.</strong> Timestamps are in microseconds, but the Windows clock ticks in steps: several close events can show the same time. On Linux and macOS the precision is real.</li>
+</ul>
+
+</article>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">TPeek · <a href="https://github.com/michelware/tpeek">Source on GitHub</a></div>
+</footer>
+
+</body>
+</html>

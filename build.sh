@@ -1,38 +1,22 @@
 #!/bin/bash
+set -e
 
 NAME="tpeek"
-VERSION="1.0.0"
+mkdir -p build
 
-echo "Starting multi-platform build for $NAME $VERSION..."
+# Each line: GOOS GOARCH output-suffix
+TARGETS="
+linux amd64 linux-amd64
+linux arm64 linux-arm64
+darwin amd64 macos-amd64
+darwin arm64 macos-arm64
+windows amd64 windows-amd64.exe
+"
 
-# Linux
-echo "Building for Linux..."
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o build/${NAME}-linux
-if [ $? -eq 0 ]; then
-    echo "Build successful for Linux: ${NAME}-linux"
-else
-    echo "Build failed for Linux"
-    exit 1
-fi
+echo "$TARGETS" | while read -r goos goarch suffix; do
+    [ -z "$goos" ] && continue
+    echo "Building ${NAME}-${suffix}..."
+    GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 go build -ldflags="-s -w" -o "build/${NAME}-${suffix}"
+done
 
-# Windows
-echo "Building for Windows..."
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o build/${NAME}-windows.exe
-if [ $? -eq 0 ]; then
-    echo "Build successful for Windows: ${NAME}-windows.exe"
-else
-    echo "Build failed for Windows"
-    exit 1
-fi
-
-# MacOS
-echo "Building for MacOS..."
-GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o build/${NAME}-macos
-if [ $? -eq 0 ]; then
-    echo "Build successful for MacOS: ${NAME}-macos"
-else
-    echo "Build failed for MacOS"
-    exit 1
-fi
-
-echo "✅ Done! All binaries are in the 'build' folder."
+echo "Done. Binaries are in the 'build' folder."

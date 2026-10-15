@@ -1,0 +1,153 @@
+/* TPeek site — shared stylesheet. No framework, no build step. */
+
+/* Colour chart: blue, white, red, the colours of France and Paris. */
+:root {
+  --blue: #000091;
+  --white: #ffffff;
+  --red: #e1000f;
+  --ground: #ffffff;
+  --surface: #f5f6fc;
+  --ink: #0b1340;
+  --ink-soft: #2e3560;
+  --ink-mute: #565c80;
+  --line: #d5d8ea;
+  --accent: var(--blue);
+  --accent-2: var(--red);
+  --code-bg: #0b1340;
+  --code-ink: #eef0ff;
+  --code-comment: #8c93b8;
+  --code-key: #a9b6ff;
+  --code-value: #ffb4b9;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blue: #3d5bff;
+    --ground: #070c26;
+    --surface: #0f1638;
+    --ink: #ffffff;
+    --ink-soft: #ccd1ec;
+    --ink-mute: #9aa1c6;
+    --line: #232c5c;
+    --accent: #8fa0ff;
+    --accent-2: #ff5c66;
+    --code-bg: #03061a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+a { color: var(--accent); }
+a:hover { text-decoration-thickness: 2px; }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+/* Header */
+.site-header {
+  border-bottom: 3px solid;
+  border-image: linear-gradient(to right, var(--blue) 33.3%, var(--white) 33.3% 66.6%, var(--red) 66.6%) 1;
+}
+.site-header .wrap {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  align-items: center; justify-content: space-between;
+  padding-top: 18px; padding-bottom: 18px;
+}
+.logo { font-family: var(--font-mono); font-weight: 600; font-size: 19px; color: var(--ink); text-decoration: none; }
+.logo span { color: var(--accent-2); }
+.site-nav { display: flex; flex-wrap: wrap; gap: 22px; font-size: 15px; }
+.site-nav a { color: var(--ink); text-decoration: none; }
+.site-nav a:hover { color: var(--accent-2); }
+
+/* Hero */
+.hero { padding: 88px 0 72px; }
+.eyebrow { font-family: var(--font-mono); font-size: 14px; color: var(--ink-mute); margin: 0 0 20px; }
+.hero h1 { margin: 0; font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.02em; max-width: 820px; }
+.hero p.lead { margin: 24px 0 0; font-size: 20px; color: var(--ink-soft); max-width: 680px; }
+.actions { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 14px; }
+.button {
+  display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px;
+  border-radius: 4px; font-weight: 600; text-decoration: none;
+  border: 1px solid var(--ink); color: var(--ink);
+}
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--white); }
+.button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); opacity: 1; }
+.button:hover { text-decoration: none; opacity: 0.9; }
+
+/* Sections */
+section { padding: 64px 0; border-top: 1px solid var(--line); }
+section h2 { margin: 0 0 12px; font-size: 32px; line-height: 1.2; }
+.section-lead { margin: 0 0 36px; color: var(--ink-soft); max-width: 680px; }
+.label { font-family: var(--font-mono); font-size: 14px; color: var(--accent-2); margin: 0 0 10px; }
+
+.grid { display: flex; flex-wrap: wrap; gap: 20px; }
+.card {
+  flex: 1 1 280px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 24px;
+}
+.card h3 { margin: 0 0 8px; font-size: 19px; }
+.card p { margin: 0; color: var(--ink-soft); }
+
+/* Code */
+pre, code { font-family: var(--font-mono); font-size: 14.5px; }
+pre {
+  background: var(--code-bg); color: var(--code-ink);
+  border-radius: 6px; padding: 18px 20px; overflow-x: auto; line-height: 1.55; margin: 0 0 20px;
+}
+:not(pre) > code { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; }
+.c { color: var(--code-comment); }
+.k { color: var(--code-key); }
+.v { color: var(--code-value); }
+
+.terminal-title { font-family: var(--font-mono); font-size: 13px; color: var(--ink-mute); margin: 0 0 6px; }
+.grid + .terminal-title { margin-top: 40px; }
+
+/* Tables */
+.table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 15.5px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.us, th.us { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+/* Never list */
+.never { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0; margin: 0; }
+.never li { font-family: var(--font-mono); font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 4px; }
+
+/* Quote */
+blockquote { margin: 0; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 19px; }
+blockquote footer { margin-top: 10px; font-size: 15px; color: var(--ink-mute); }
+
+/* Docs layout */
+.docs { display: flex; flex-wrap: wrap; gap: 48px; padding: 48px 0 80px; }
+.docs nav.toc { flex: 1 1 200px; max-width: 240px; font-size: 15px; }
+.docs nav.toc ol { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.docs nav.toc a { color: var(--ink-soft); text-decoration: none; }
+.docs nav.toc a:hover { color: var(--accent); }
+.docs article { flex: 999 1 560px; min-width: 0; }
+.docs article h1 { margin: 0 0 12px; font-size: 40px; line-height: 1.1; }
+.docs article h2 { margin: 48px 0 12px; font-size: 26px; padding-top: 8px; border-top: 1px solid var(--line); }
+.docs article h3 { margin: 28px 0 8px; font-size: 19px; }
+.docs article p, .docs article li { color: var(--ink-soft); }
+.note { padding: 14px 18px; border: 1px solid var(--line); border-left: 4px solid var(--accent-2); border-radius: 6px; background: var(--surface); margin: 0 0 20px; }
+.note strong { color: var(--ink); }
+
+/* Footer */
+.site-footer { border-top: 3px solid; border-image: linear-gradient(to right, var(--blue) 33.3%, var(--white) 33.3% 66.6%, var(--red) 66.6%) 1; padding: 28px 0; font-size: 14px; color: var(--ink-mute); }
+
+@media (max-width: 720px) {
+  .docs nav.toc { max-width: none; }
+  .hero { padding: 56px 0 48px; }
+}
